@@ -29,4 +29,3 @@ coverage/
 # Prisma
 prisma/migrations/*.lock
 
-/generated/prisma
