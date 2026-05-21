@@ -14,6 +14,9 @@ export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy
       lazyConnect: true,
       maxRetriesPerRequest: 3,
     });
+    this.on('error', (err: Error) => {
+      this.logger.error(`Redis error: ${err.message}`);
+    });
   }
 
   async onModuleInit() {
