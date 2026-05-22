@@ -28,7 +28,9 @@ export class AppConfigService {
     return {
       secret: this.config.getOrThrow<string>('JWT_SECRET'),
       expiresIn: this.config.getOrThrow<string>('JWT_EXPIRES_IN'),
-      refreshExpiresIn: this.config.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
+      refreshExpiresIn: this.config.getOrThrow<string>(
+        'JWT_REFRESH_EXPIRES_IN',
+      ),
     };
   }
   get wechat() {

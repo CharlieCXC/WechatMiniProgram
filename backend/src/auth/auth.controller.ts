@@ -1,4 +1,12 @@
-import { Body, Controller, Post, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -7,7 +15,9 @@ import { SendSmsDto } from './dto/send-sms.dto';
 import { LoginMasterPhoneDto } from './dto/login-master-phone.dto';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
 
-interface AuthedRequest { user: AuthenticatedUser; }
+interface AuthedRequest {
+  user: AuthenticatedUser;
+}
 
 @ApiTags('auth')
 @Controller('auth')

@@ -25,10 +25,21 @@ describe('AuthService', () => {
         { provide: WechatService, useValue: wechat },
         { provide: UserService, useValue: userSvc },
         { provide: JwtService, useValue: jwt },
-        { provide: AppConfigService, useValue: { jwt: { secret: 's', expiresIn: '7d', refreshExpiresIn: '30d' } } },
+        {
+          provide: AppConfigService,
+          useValue: {
+            jwt: { secret: 's', expiresIn: '7d', refreshExpiresIn: '30d' },
+          },
+        },
         { provide: SmsService, useValue: { sendVerificationCode: jest.fn() } },
-        { provide: MasterService, useValue: { findOrCreateByPhone: jest.fn(), bindUnionid: jest.fn() } },
-        { provide: RedisService, useValue: { set: jest.fn(), get: jest.fn(), del: jest.fn() } },
+        {
+          provide: MasterService,
+          useValue: { findOrCreateByPhone: jest.fn(), bindUnionid: jest.fn() },
+        },
+        {
+          provide: RedisService,
+          useValue: { set: jest.fn(), get: jest.fn(), del: jest.fn() },
+        },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -36,14 +47,35 @@ describe('AuthService', () => {
 
   describe('loginWithWechat', () => {
     it('exchanges code, finds/creates user, returns JWT pair', async () => {
-      wechat.code2Session.mockResolvedValue({ openid: 'wx_abc', sessionKey: 'sk', unionid: 'wx_uni' });
-      userSvc.findOrCreateByOpenid.mockResolvedValue({ id: 'u1', openid: 'wx_abc', unionid: 'wx_uni' });
-      jwt.sign.mockReturnValueOnce('access_jwt').mockReturnValueOnce('refresh_jwt');
+      wechat.code2Session.mockResolvedValue({
+        openid: 'wx_abc',
+        sessionKey: 'sk',
+        unionid: 'wx_uni',
+      });
+      userSvc.findOrCreateByOpenid.mockResolvedValue({
+        id: 'u1',
+        openid: 'wx_abc',
+        unionid: 'wx_uni',
+      });
+      jwt.sign
+        .mockReturnValueOnce('access_jwt')
+        .mockReturnValueOnce('refresh_jwt');
       const result = await service.loginWithWechat('mock_code');
       expect(wechat.code2Session).toHaveBeenCalledWith('mock_code');
-      expect(userSvc.findOrCreateByOpenid).toHaveBeenCalledWith('wx_abc', 'wx_uni');
-      expect(result).toEqual({ accessToken: 'access_jwt', refreshToken: 'refresh_jwt', userId: 'u1' });
-      expect(jwt.sign).toHaveBeenNthCalledWith(1, expect.objectContaining({ sub: 'u1', role: 'USER' }), expect.objectContaining({ expiresIn: '7d' }));
+      expect(userSvc.findOrCreateByOpenid).toHaveBeenCalledWith(
+        'wx_abc',
+        'wx_uni',
+      );
+      expect(result).toEqual({
+        accessToken: 'access_jwt',
+        refreshToken: 'refresh_jwt',
+        userId: 'u1',
+      });
+      expect(jwt.sign).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ sub: 'u1', role: 'USER' }),
+        expect.objectContaining({ expiresIn: '7d' }),
+      );
     });
   });
 });
@@ -69,7 +101,12 @@ describe('AuthService (sms + master phone login)', () => {
         { provide: MasterService, useValue: masters },
         { provide: RedisService, useValue: redis },
         { provide: JwtService, useValue: jwt },
-        { provide: AppConfigService, useValue: { jwt: { secret: 's', expiresIn: '7d', refreshExpiresIn: '30d' } } },
+        {
+          provide: AppConfigService,
+          useValue: {
+            jwt: { secret: 's', expiresIn: '7d', refreshExpiresIn: '30d' },
+          },
+        },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -80,8 +117,16 @@ describe('AuthService (sms + master phone login)', () => {
       redis.get.mockResolvedValue(null);
       redis.set.mockResolvedValue('OK');
       await service.sendSmsCode('13800138000');
-      expect(redis.set).toHaveBeenCalledWith('sms:code:13800138000', expect.stringMatching(/^\d{6}$/), 'EX', 300);
-      expect(sms.sendVerificationCode).toHaveBeenCalledWith('13800138000', expect.stringMatching(/^\d{6}$/));
+      expect(redis.set).toHaveBeenCalledWith(
+        'sms:code:13800138000',
+        expect.stringMatching(/^\d{6}$/),
+        'EX',
+        300,
+      );
+      expect(sms.sendVerificationCode).toHaveBeenCalledWith(
+        '13800138000',
+        expect.stringMatching(/^\d{6}$/),
+      );
     });
 
     it('rate-limits: rejects if recent code sent within 60s', async () => {
@@ -94,24 +139,35 @@ describe('AuthService (sms + master phone login)', () => {
   describe('loginMasterPhone', () => {
     it('verifies code, finds/creates master, returns JWT pair', async () => {
       redis.get.mockResolvedValueOnce('123456');
-      masters.findOrCreateByPhone.mockResolvedValue({ id: 'm1', phone: '13800138000' });
+      masters.findOrCreateByPhone.mockResolvedValue({
+        id: 'm1',
+        phone: '13800138000',
+      });
       jwt.sign.mockReturnValueOnce('access').mockReturnValueOnce('refresh');
       const r = await service.loginMasterPhone('13800138000', '123456');
       expect(redis.get).toHaveBeenCalledWith('sms:code:13800138000');
       expect(redis.del).toHaveBeenCalledWith('sms:code:13800138000');
       expect(masters.findOrCreateByPhone).toHaveBeenCalledWith('13800138000');
-      expect(r).toEqual({ accessToken: 'access', refreshToken: 'refresh', userId: 'm1' });
+      expect(r).toEqual({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+        userId: 'm1',
+      });
     });
 
     it('rejects when stored code does not match', async () => {
       redis.get.mockResolvedValueOnce('654321');
-      await expect(service.loginMasterPhone('13800138000', '123456')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.loginMasterPhone('13800138000', '123456'),
+      ).rejects.toThrow(BadRequestException);
       expect(redis.del).not.toHaveBeenCalled();
     });
 
     it('rejects when no code exists (expired)', async () => {
       redis.get.mockResolvedValueOnce(null);
-      await expect(service.loginMasterPhone('13800138000', '123456')).rejects.toThrow(/验证码已过期/);
+      await expect(
+        service.loginMasterPhone('13800138000', '123456'),
+      ).rejects.toThrow(/验证码已过期/);
     });
   });
 });

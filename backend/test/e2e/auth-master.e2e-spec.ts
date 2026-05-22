@@ -14,14 +14,24 @@ describe('Master phone login (e2e)', () => {
   const sentCodes: Record<string, string> = {};
 
   beforeAll(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
       .overrideProvider(SmsService)
       .useValue({
-        sendVerificationCode: jest.fn(async (phone: string, code: string) => { sentCodes[phone] = code; }),
+        sendVerificationCode: jest.fn(async (phone: string, code: string) => {
+          sentCodes[phone] = code;
+        }),
       })
       .compile();
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
     prisma = moduleRef.get(PrismaService);
@@ -37,21 +47,39 @@ describe('Master phone login (e2e)', () => {
   });
 
   it('full flow: send code -> login -> master record exists', async () => {
-    await request(app.getHttpServer()).post('/auth/sms/send').send({ phone: '13900139001' }).expect(200);
+    await request(app.getHttpServer())
+      .post('/auth/sms/send')
+      .send({ phone: '13900139001' })
+      .expect(200);
     const code = sentCodes['13900139001'];
     expect(code).toMatch(/^\d{6}$/);
-    const loginResp = await request(app.getHttpServer()).post('/auth/login/master').send({ phone: '13900139001', code }).expect(200);
-    expect(loginResp.body.data).toMatchObject({ accessToken: expect.any(String), refreshToken: expect.any(String), userId: expect.any(String) });
-    const master = await prisma.master.findUnique({ where: { phone: '13900139001' } });
+    const loginResp = await request(app.getHttpServer())
+      .post('/auth/login/master')
+      .send({ phone: '13900139001', code })
+      .expect(200);
+    expect(loginResp.body.data).toMatchObject({
+      accessToken: expect.any(String),
+      refreshToken: expect.any(String),
+      userId: expect.any(String),
+    });
+    const master = await prisma.master.findUnique({
+      where: { phone: '13900139001' },
+    });
     expect(master?.status).toBe('PENDING');
   });
 
   it('rejects wrong code', async () => {
     await redis.set('sms:code:13900139001', '999999', 'EX', 300);
-    await request(app.getHttpServer()).post('/auth/login/master').send({ phone: '13900139001', code: '000000' }).expect(400);
+    await request(app.getHttpServer())
+      .post('/auth/login/master')
+      .send({ phone: '13900139001', code: '000000' })
+      .expect(400);
   });
 
   it('rejects bad phone format', async () => {
-    await request(app.getHttpServer()).post('/auth/sms/send').send({ phone: '12345' }).expect(400);
+    await request(app.getHttpServer())
+      .post('/auth/sms/send')
+      .send({ phone: '12345' })
+      .expect(400);
   });
 });

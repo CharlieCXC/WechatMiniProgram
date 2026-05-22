@@ -25,6 +25,9 @@ export class MasterService {
   }
 
   async bindUnionid(masterId: string, unionid: string): Promise<Master> {
-    return this.prisma.master.update({ where: { id: masterId }, data: { unionid } });
+    return this.prisma.master.update({
+      where: { id: masterId },
+      data: { unionid },
+    });
   }
 }

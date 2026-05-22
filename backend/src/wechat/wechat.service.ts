@@ -34,7 +34,9 @@ export class WechatService {
       errmsg?: string;
     };
     if (data.errcode) {
-      this.logger.warn(`code2session errcode=${data.errcode} msg=${data.errmsg}`);
+      this.logger.warn(
+        `code2session errcode=${data.errcode} msg=${data.errmsg}`,
+      );
       throw new BadRequestException(`WeChat code2session: ${data.errmsg}`);
     }
     return {

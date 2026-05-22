@@ -16,11 +16,21 @@ describe('POST /auth/login/wechat (e2e)', () => {
     })
       .overrideProvider(WechatService)
       .useValue({
-        code2Session: jest.fn().mockResolvedValue({ openid: 'e2e_openid_test', sessionKey: 'sk', unionid: 'e2e_unionid_test' }),
+        code2Session: jest.fn().mockResolvedValue({
+          openid: 'e2e_openid_test',
+          sessionKey: 'sk',
+          unionid: 'e2e_unionid_test',
+        }),
       })
       .compile();
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
     prisma = moduleRef.get(PrismaService);
@@ -39,14 +49,23 @@ describe('POST /auth/login/wechat (e2e)', () => {
       .expect(200);
     expect(resp.body).toMatchObject({
       success: true,
-      data: { accessToken: expect.any(String), refreshToken: expect.any(String), userId: expect.any(String) },
+      data: {
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+        userId: expect.any(String),
+      },
     });
-    const created = await prisma.user.findUnique({ where: { openid: 'e2e_openid_test' } });
+    const created = await prisma.user.findUnique({
+      where: { openid: 'e2e_openid_test' },
+    });
     expect(created).toBeTruthy();
     expect(created?.unionid).toBe('e2e_unionid_test');
   });
 
   it('rejects when code is missing', async () => {
-    await request(app.getHttpServer()).post('/auth/login/wechat').send({}).expect(400);
+    await request(app.getHttpServer())
+      .post('/auth/login/wechat')
+      .send({})
+      .expect(400);
   });
 });

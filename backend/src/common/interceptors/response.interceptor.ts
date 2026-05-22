@@ -14,8 +14,14 @@ export interface SuccessResponse<T> {
 }
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, SuccessResponse<T>> {
-  intercept(_ctx: ExecutionContext, next: CallHandler): Observable<SuccessResponse<T>> {
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  SuccessResponse<T>
+> {
+  intercept(
+    _ctx: ExecutionContext,
+    next: CallHandler,
+  ): Observable<SuccessResponse<T>> {
     return next.handle().pipe(
       map((data) => ({
         success: true,

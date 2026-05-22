@@ -29,3 +29,6 @@ coverage/
 # Prisma
 prisma/migrations/*.lock
 
+
+# Orphaned husky (project uses scripts/git-hooks/)
+.husky/

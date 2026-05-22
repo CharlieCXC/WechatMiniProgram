@@ -10,10 +10,15 @@ export class UserService {
     const existing = await this.prisma.user.findUnique({ where: { openid } });
     if (existing) {
       if (unionid && !existing.unionid) {
-        return this.prisma.user.update({ where: { id: existing.id }, data: { unionid } });
+        return this.prisma.user.update({
+          where: { id: existing.id },
+          data: { unionid },
+        });
       }
       return existing;
     }
-    return this.prisma.user.create({ data: { openid, ...(unionid ? { unionid } : {}) } });
+    return this.prisma.user.create({
+      data: { openid, ...(unionid ? { unionid } : {}) },
+    });
   }
 }

@@ -45,6 +45,9 @@ async function bootstrap() {
   }
 
   await app.listen(config.port);
-  Logger.log(`🚀 Backend running on http://localhost:${config.port}`, 'Bootstrap');
+  Logger.log(
+    `🚀 Backend running on http://localhost:${config.port}`,
+    'Bootstrap',
+  );
 }
 bootstrap();

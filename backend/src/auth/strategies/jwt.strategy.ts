@@ -4,7 +4,10 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AppConfigService } from '../../config/config.service';
 import { JwtPayload, Role } from '../auth.service';
 
-export interface AuthenticatedUser { id: string; role: Role; }
+export interface AuthenticatedUser {
+  id: string;
+  role: Role;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

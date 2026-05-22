@@ -8,8 +8,15 @@ import { RedisService } from '../redis/redis.service';
 import { AppConfigService } from '../config/config.service';
 
 export type Role = 'USER' | 'MASTER' | 'ADMIN';
-export interface JwtPayload { sub: string; role: Role; }
-export interface LoginResult { accessToken: string; refreshToken: string; userId: string; }
+export interface JwtPayload {
+  sub: string;
+  role: Role;
+}
+export interface LoginResult {
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -54,7 +61,10 @@ export class AuthService {
     return this.issueTokens(master.id, 'MASTER');
   }
 
-  async bindMasterUnionid(masterId: string, code: string): Promise<{ unionid: string }> {
+  async bindMasterUnionid(
+    masterId: string,
+    code: string,
+  ): Promise<{ unionid: string }> {
     const { unionid } = await this.wechat.code2Session(code);
     if (!unionid) {
       throw new BadRequestException('微信未返回 unionid，请确保已绑定开放平台');
@@ -65,8 +75,13 @@ export class AuthService {
 
   private issueTokens(subjectId: string, role: Role): LoginResult {
     const payload: JwtPayload = { sub: subjectId, role };
-    const accessOpts: JwtSignOptions = { expiresIn: this.config.jwt.expiresIn as JwtSignOptions['expiresIn'] };
-    const refreshOpts: JwtSignOptions = { expiresIn: this.config.jwt.refreshExpiresIn as JwtSignOptions['expiresIn'] };
+    const accessOpts: JwtSignOptions = {
+      expiresIn: this.config.jwt.expiresIn as JwtSignOptions['expiresIn'],
+    };
+    const refreshOpts: JwtSignOptions = {
+      expiresIn: this.config.jwt
+        .refreshExpiresIn as JwtSignOptions['expiresIn'],
+    };
     return {
       accessToken: this.jwt.sign(payload, accessOpts),
       refreshToken: this.jwt.sign(payload, refreshOpts),

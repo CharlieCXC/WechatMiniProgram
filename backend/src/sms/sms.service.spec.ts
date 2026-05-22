@@ -53,10 +53,16 @@ describe('SmsService', () => {
 
   it('throws when SMS returns non-Ok status', async () => {
     mockSendSms.mockResolvedValue({
-      SendStatusSet: [{ Code: 'LimitExceeded', PhoneNumber: '+8613800138000', Message: 'rate' }],
+      SendStatusSet: [
+        {
+          Code: 'LimitExceeded',
+          PhoneNumber: '+8613800138000',
+          Message: 'rate',
+        },
+      ],
     });
-    await expect(service.sendVerificationCode('13800138000', '123456')).rejects.toThrow(
-      /LimitExceeded/,
-    );
+    await expect(
+      service.sendVerificationCode('13800138000', '123456'),
+    ).rejects.toThrow(/LimitExceeded/);
   });
 });
