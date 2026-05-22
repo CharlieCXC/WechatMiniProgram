@@ -36,22 +36,30 @@ describe('OnboardingService', () => {
         id: 'i1',
         status: 'UNUSED',
       });
-      prisma.$transaction.mockImplementation(async (fns) => {
-        if (typeof fns === 'function') {
-          return fns({
-            inviteCode: { update: jest.fn() },
-            master: {
-              update: jest.fn().mockResolvedValue({
-                id: 'm1',
-                onboardingStep: 'INVITED',
-              }),
-            },
-          });
-        }
-        return Promise.all(fns);
-      });
+      const txInviteUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+      const txMasterUpdate = jest
+        .fn()
+        .mockResolvedValue({ id: 'm1', onboardingStep: 'INVITED' });
+      prisma.$transaction.mockImplementation(async (fn) =>
+        fn({
+          inviteCode: { updateMany: txInviteUpdateMany },
+          master: { update: txMasterUpdate },
+        }),
+      );
       const result = await service.redeemInvite('m1', 'CODE1234');
       expect(result.onboardingStep).toBe('INVITED');
+      expect(txInviteUpdateMany).toHaveBeenCalledWith({
+        where: { id: 'i1', status: 'UNUSED' },
+        data: {
+          status: 'USED',
+          usedByMasterId: 'm1',
+          usedAt: expect.any(Date),
+        },
+      });
+      expect(txMasterUpdate).toHaveBeenCalledWith({
+        where: { id: 'm1' },
+        data: { onboardingStep: 'INVITED' },
+      });
     });
 
     it('rejects unknown / non-UNUSED code with BadRequest', async () => {

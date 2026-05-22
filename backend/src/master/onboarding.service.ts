@@ -35,14 +35,17 @@ export class OnboardingService {
       throw new BadRequestException('邀请码无效或已被使用');
     }
     return this.prisma.$transaction(async (tx) => {
-      await tx.inviteCode.update({
-        where: { id: invite.id },
+      const consumed = await tx.inviteCode.updateMany({
+        where: { id: invite.id, status: 'UNUSED' },
         data: {
           status: 'USED',
           usedByMasterId: masterId,
           usedAt: new Date(),
         },
       });
+      if (consumed.count === 0) {
+        throw new BadRequestException('邀请码无效或已被使用');
+      }
       return tx.master.update({
         where: { id: masterId },
         data: { onboardingStep: 'INVITED' },
