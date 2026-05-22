@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -17,8 +17,20 @@ export class UserService {
       }
       return existing;
     }
-    return this.prisma.user.create({
-      data: { openid, ...(unionid ? { unionid } : {}) },
-    });
+    try {
+      return await this.prisma.user.create({
+        data: { openid, ...(unionid ? { unionid } : {}) },
+      });
+    } catch (e) {
+      // Race: another concurrent first-login created it between find and create
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const u = await this.prisma.user.findUnique({ where: { openid } });
+        if (u) return u;
+      }
+      throw e;
+    }
   }
 }

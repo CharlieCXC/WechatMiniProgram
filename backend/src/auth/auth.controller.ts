@@ -14,6 +14,8 @@ import { LoginWechatDto } from './dto/login-wechat.dto';
 import { SendSmsDto } from './dto/send-sms.dto';
 import { LoginMasterPhoneDto } from './dto/login-master-phone.dto';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 interface AuthedRequest {
   user: AuthenticatedUser;
@@ -47,7 +49,8 @@ export class AuthController {
   }
 
   @Post('master/bind-unionid')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('MASTER')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '师傅绑定微信 unionid (扫码后调用)' })

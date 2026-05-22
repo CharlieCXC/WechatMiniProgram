@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { WechatService } from '../wechat/wechat.service';
 import { UserService } from '../user/user.service';
@@ -49,14 +50,27 @@ export class AuthService {
   }
 
   async loginMasterPhone(phone: string, code: string): Promise<LoginResult> {
-    const stored = await this.redis.get(`sms:code:${phone}`);
+    const codeKey = `sms:code:${phone}`;
+    const attemptsKey = `sms:attempts:${phone}`;
+
+    const stored = await this.redis.get(codeKey);
     if (!stored) {
       throw new BadRequestException('验证码已过期，请重新发送');
     }
+
     if (stored !== code) {
+      const attempts = await this.redis.incr(attemptsKey);
+      if (attempts === 1) {
+        await this.redis.expire(attemptsKey, 300);
+      }
+      if (attempts >= 5) {
+        await this.redis.del(codeKey, attemptsKey);
+        throw new BadRequestException('验证码错误次数过多，请重新获取');
+      }
       throw new BadRequestException('验证码错误');
     }
-    await this.redis.del(`sms:code:${phone}`);
+
+    await this.redis.del(codeKey, attemptsKey);
     const master = await this.masters.findOrCreateByPhone(phone);
     return this.issueTokens(master.id, 'MASTER');
   }
@@ -90,6 +104,6 @@ export class AuthService {
   }
 
   private generateSixDigitCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
   }
 }

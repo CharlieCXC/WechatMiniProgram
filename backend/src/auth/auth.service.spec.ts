@@ -38,7 +38,13 @@ describe('AuthService', () => {
         },
         {
           provide: RedisService,
-          useValue: { set: jest.fn(), get: jest.fn(), del: jest.fn() },
+          useValue: {
+            set: jest.fn(),
+            get: jest.fn(),
+            del: jest.fn(),
+            incr: jest.fn(),
+            expire: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -84,13 +90,25 @@ describe('AuthService (sms + master phone login)', () => {
   let service: AuthService;
   let sms: { sendVerificationCode: jest.Mock };
   let masters: { findOrCreateByPhone: jest.Mock };
-  let redis: { set: jest.Mock; get: jest.Mock; del: jest.Mock };
+  let redis: {
+    set: jest.Mock;
+    get: jest.Mock;
+    del: jest.Mock;
+    incr: jest.Mock;
+    expire: jest.Mock;
+  };
   let jwt: { sign: jest.Mock };
 
   beforeEach(async () => {
     sms = { sendVerificationCode: jest.fn() };
     masters = { findOrCreateByPhone: jest.fn() };
-    redis = { set: jest.fn(), get: jest.fn(), del: jest.fn() };
+    redis = {
+      set: jest.fn(),
+      get: jest.fn(),
+      del: jest.fn(),
+      incr: jest.fn(),
+      expire: jest.fn(),
+    };
     jwt = { sign: jest.fn() };
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -146,7 +164,10 @@ describe('AuthService (sms + master phone login)', () => {
       jwt.sign.mockReturnValueOnce('access').mockReturnValueOnce('refresh');
       const r = await service.loginMasterPhone('13800138000', '123456');
       expect(redis.get).toHaveBeenCalledWith('sms:code:13800138000');
-      expect(redis.del).toHaveBeenCalledWith('sms:code:13800138000');
+      expect(redis.del).toHaveBeenCalledWith(
+        'sms:code:13800138000',
+        'sms:attempts:13800138000',
+      );
       expect(masters.findOrCreateByPhone).toHaveBeenCalledWith('13800138000');
       expect(r).toEqual({
         accessToken: 'access',
@@ -157,6 +178,7 @@ describe('AuthService (sms + master phone login)', () => {
 
     it('rejects when stored code does not match', async () => {
       redis.get.mockResolvedValueOnce('654321');
+      redis.incr.mockResolvedValue(1);
       await expect(
         service.loginMasterPhone('13800138000', '123456'),
       ).rejects.toThrow(BadRequestException);
