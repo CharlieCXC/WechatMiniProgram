@@ -39,6 +39,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
+    "tencentcloud-sdk-nodejs-sms": "^4.1.228",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
