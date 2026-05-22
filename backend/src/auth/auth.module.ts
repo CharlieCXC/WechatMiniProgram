@@ -6,12 +6,16 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WechatModule } from '../wechat/wechat.module';
 import { UserModule } from '../user/user.module';
+import { SmsModule } from '../sms/sms.module';
+import { MasterModule } from '../master/master.module';
 import { AppConfigService } from '../config/config.service';
 
 @Module({
   imports: [
     WechatModule,
     UserModule,
+    SmsModule,
+    MasterModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [AppConfigService],
