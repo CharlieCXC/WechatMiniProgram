@@ -59,6 +59,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm exec prisma generate
+        env:
+          DATABASE_URL: "mysql://sougexianer:dev_password@127.0.0.1:3306/sougexianer_test"
 
       - name: Run migrations on test DB
         run: pnpm exec prisma migrate deploy
