@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============= USERS & MASTERS =============
+
+model User {
+  id        String     @id @default(cuid())
+  openid    String     @unique
+  unionid   String?
+  nickname  String?
+  avatar    String?    @db.VarChar(500)
+  phone     String?
+  realname  String?
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  favorites Favorite[]
+
+  @@index([unionid])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model Master {
+  id               String  @id @default(cuid())
+  invitedByUserId  String?
+  phone            String  @unique
+  unionid          String? @unique
+  realname         String?
+  realnameVerified Boolean @default(false)
+  idNumberHash     String?
+
+  displayName String  @db.VarChar(100)
+  avatar      String  @db.VarChar(500)
+  intro       String  @db.VarChar(200)
+  experience  String  @db.Text
+  philosophy  String  @db.Text
+  videoUrl    String? @db.VarChar(500)
+  methods     Json
+  topics      Json
+  badges      Json    @default("[]")
+
+  status    MasterStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  skus        ServiceSKU[]
+  schedules   Schedule[]
+  settlements Settlement[]
+
+  @@map("masters")
+}
+
+enum MasterStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+// ============= SERVICE SKU =============
+
+model ServiceSKU {
+  id           String      @id @default(cuid())
+  masterId     String
+  master       Master      @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  name         String      @db.VarChar(100)
+  type         ServiceType
+  price        Int
+  durationMin  Int?
+  deliveryHour Int?
+  description  String      @db.Text
+  status       SKUStatus   @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([masterId])
+  @@map("service_skus")
+}
+
+enum ServiceType {
+  ASYNC_REPORT
+  REALTIME_IM
+}
+
+enum SKUStatus {
+  ACTIVE
+  DISABLED
+}
+
+// ============= ORDERS =============
+
+model Order {
+  id             String     @id @default(cuid())
+  userId         String
+  masterId       String
+  skuId          String
+  skuSnapshot    Json
+  state          OrderState @default(PENDING_ACCEPT)
+  scheduledAt    DateTime?
+  conversationId String
+
+  originalPrice Int
+  finalPrice    Int
+  platformFee   Int
+
+  createdAt   DateTime  @default(now())
+  acceptedAt  DateTime?
+  deliveredAt DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([masterId])
+  @@index([state])
+  @@map("orders")
+}
+
+enum OrderState {
+  PENDING_ACCEPT
+  ACCEPTED
+  PENDING_PAYMENT
+  PAID
+  IN_PROGRESS
+  DELIVERED
+  CONSULTATION_ENDED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  IN_DISPUTE
+}
+
+model PriceChange {
+  id        String            @id @default(cuid())
+  orderId   String
+  fromPrice Int
+  toPrice   Int
+  reason    String            @db.Text
+  status    PriceChangeStatus @default(PENDING)
+  decidedAt DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([orderId])
+  @@map("price_changes")
+}
+
+enum PriceChangeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// ============= IM CONVERSATION =============
+
+model Conversation {
+  id               String    @id @default(cuid())
+  userId           String
+  masterId         String
+  unrespondedCount Int       @default(0)
+  masterHasReplied Boolean   @default(false)
+  hasOrder         Boolean   @default(false)
+  lastMessageAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  messages Message[]
+
+  @@unique([userId, masterId])
+  @@index([userId])
+  @@index([masterId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  senderType     SenderType
+  type           MessageType
+  content        String       @db.Text
+  systemCardData Json?
+  relatedOrderId String?
+  auditStatus    AuditStatus  @default(PASS)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+enum SenderType {
+  USER
+  MASTER
+  SYSTEM
+}
+
+enum MessageType {
+  TEXT
+  VOICE
+  IMAGE
+  SYSTEM_CARD
+}
+
+enum AuditStatus {
+  PENDING
+  PASS
+  REJECTED
+}
+
+// ============= REVIEW =============
+
+model Review {
+  id            String    @id @default(cuid())
+  orderId       String    @unique
+  userId        String
+  masterId      String
+  professional  Int
+  patience      Int
+  ritual        Int
+  valueForMoney Int
+  tags          Json      @default("[]")
+  content       String    @db.Text
+  images        Json      @default("[]")
+  masterReply   String?   @db.Text
+  masterReplyAt DateTime?
+  isActive      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([masterId])
+  @@map("reviews")
+}
+
+// ============= DISPUTE =============
+
+model DisputeCase {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  userId          String
+  reason          String         @db.VarChar(100)
+  userStatement   String         @db.Text
+  evidence        Json           @default("[]")
+  masterStatement String?        @db.Text
+  ruling          DisputeRuling?
+  rulingReason    String?        @db.Text
+  resolvedAt      DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@map("dispute_cases")
+}
+
+enum DisputeRuling {
+  FULL_REFUND
+  PARTIAL_REFUND
+  DISMISS
+}
+
+// ============= ASSETS & SCHEDULES =============
+
+model Asset {
+  id             String     @id @default(cuid())
+  ownerId        String
+  ownerType      AssetOwner
+  category       String
+  url            String     @db.VarChar(500)
+  metadata       Json?
+  relatedOrderId String?
+  createdAt      DateTime   @default(now())
+
+  @@index([ownerId])
+  @@map("assets")
+}
+
+enum AssetOwner {
+  USER
+  MASTER
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  masterId  String
+  master    Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([masterId])
+  @@map("schedules")
+}
+
+// ============= SETTLEMENT =============
+
+model Settlement {
+  id             String           @id @default(cuid())
+  masterId       String
+  master         Master           @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  amount         Int
+  type           SettlementType
+  status         SettlementStatus @default(PENDING)
+  relatedOrderId String?
+  withdrawTxnId  String?
+  createdAt      DateTime         @default(now())
+  settledAt      DateTime?
+
+  @@index([masterId])
+  @@map("settlements")
+}
+
+enum SettlementType {
+  EARNING
+  WITHDRAW
+  REFUND_DEDUCT
+}
+
+enum SettlementStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ============= FAVORITES =============
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  masterId  String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, masterId])
+  @@map("favorites")
+}

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# commit-msg hook: Conventional Commits format check (backend)
+#
+# Delegates to commitlint in backend/ if the binary exists.
+# Format: type(scope): description  (≤72 chars)
+# Types:  feat|fix|docs|style|refactor|perf|test|chore|build|ci
+#
+# Bypass: git commit --no-verify
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+COMMITLINT="$REPO_ROOT/backend/node_modules/.bin/commitlint"
+COMMITLINT_CONFIG="$REPO_ROOT/backend/commitlint.config.js"
+
+if [ -x "$COMMITLINT" ]; then
+  "$COMMITLINT" --config "$COMMITLINT_CONFIG" --edit "$1"
+else
+  echo "WARN: commitlint not found at $COMMITLINT — skipping lint"
+  echo "      Run: cd backend && pnpm install"
+fi

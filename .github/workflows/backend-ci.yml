@@ -1,0 +1,112 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  test:
+    name: Lint + Test + Build
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: sougexianer_test
+          MYSQL_USER: sougexianer
+          MYSQL_PASSWORD: dev_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot_password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm exec prisma generate
+        env:
+          DATABASE_URL: "mysql://sougexianer:dev_password@127.0.0.1:3306/sougexianer_test"
+
+      - name: Run migrations on test DB
+        run: pnpm exec prisma migrate deploy
+        env:
+          DATABASE_URL: "mysql://sougexianer:dev_password@127.0.0.1:3306/sougexianer_test"
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Unit tests
+        run: pnpm test
+        env:
+          DATABASE_URL: "mysql://sougexianer:dev_password@127.0.0.1:3306/sougexianer_test"
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ""
+          JWT_SECRET: "test_secret_at_least_32_characters_long_xx"
+          JWT_EXPIRES_IN: "7d"
+          JWT_REFRESH_EXPIRES_IN: "30d"
+          WECHAT_APPID: "wx_test"
+          WECHAT_APPSECRET: "test_secret"
+          TENCENT_SECRET_ID: "test_id"
+          TENCENT_SECRET_KEY: "test_key"
+          TENCENT_SMS_SDK_APP_ID: "1400000000"
+          TENCENT_SMS_SIGN_NAME: "搜个仙儿"
+          TENCENT_SMS_TEMPLATE_ID: "000000"
+          CORS_ORIGIN: "http://localhost:3000"
+
+      - name: E2E tests
+        run: pnpm exec jest --config ./test/jest-e2e.json
+        env:
+          DATABASE_URL: "mysql://sougexianer:dev_password@127.0.0.1:3306/sougexianer_test"
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ""
+          JWT_SECRET: "test_secret_at_least_32_characters_long_xx"
+          JWT_EXPIRES_IN: "7d"
+          JWT_REFRESH_EXPIRES_IN: "30d"
+          WECHAT_APPID: "wx_test"
+          WECHAT_APPSECRET: "test_secret"
+          TENCENT_SECRET_ID: "test_id"
+          TENCENT_SECRET_KEY: "test_key"
+          TENCENT_SMS_SDK_APP_ID: "1400000000"
+          TENCENT_SMS_SIGN_NAME: "搜个仙儿"
+          TENCENT_SMS_TEMPLATE_ID: "000000"
+          CORS_ORIGIN: "http://localhost:3000"
+
+      - name: Build
+        run: pnpm run build
