@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { ProfileService } from './profile.service';
+import { ProfileService, PUBLIC_MASTER_SELECT } from './profile.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('ProfileService', () => {
@@ -65,6 +65,36 @@ describe('ProfileService', () => {
       await expect(service.getPublicProfile('x')).rejects.toThrow(
         NotFoundException,
       );
+    });
+    it('does not expose PII on public profile', async () => {
+      prisma.master.findUnique.mockResolvedValue({
+        id: 'm1',
+        displayName: '玄一',
+        avatar: '',
+        intro: '',
+        philosophy: '',
+        videoUrl: null,
+        experience: '',
+        methods: [],
+        topics: [],
+        badges: [],
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const result = await service.getPublicProfile('m1');
+      expect(result).not.toHaveProperty('phone');
+      expect(result).not.toHaveProperty('unionid');
+      expect(result).not.toHaveProperty('realname');
+      expect(result).not.toHaveProperty('idNumberHash');
+      expect(result).not.toHaveProperty('agreementSignedAt');
+      const call = prisma.master.findUnique.mock.calls[0][0];
+      expect(call.select).toBeDefined();
+      expect(call.select.phone).toBeUndefined();
+      expect(call.select.unionid).toBeUndefined();
+      expect(call.select.idNumberHash).toBeUndefined();
+      expect(call.select.id).toBe(true);
+      expect(call.select.displayName).toBe(true);
     });
   });
 });
