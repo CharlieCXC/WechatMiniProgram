@@ -73,10 +73,36 @@ export class SkuService {
     skuId: string,
     input: UpdateSkuInput,
   ): Promise<ServiceSKU> {
-    await this.getOwnedOrThrow(masterId, skuId);
+    const existing = await this.getOwnedOrThrow(masterId, skuId);
+
     if (input.price !== undefined && input.price < 1) {
       throw new BadRequestException('价格必须为正整数（单位：分）');
     }
+
+    // Reject cross-type field leakage (cannot send durationMin to ASYNC_REPORT or vice versa)
+    if (existing.type === 'ASYNC_REPORT' && input.durationMin !== undefined) {
+      throw new BadRequestException('异步报告不能设置 durationMin');
+    }
+    if (existing.type === 'REALTIME_IM' && input.deliveryHour !== undefined) {
+      throw new BadRequestException('实时 IM 不能设置 deliveryHour');
+    }
+
+    // Ensure the type-required field stays set after the update
+    if (
+      existing.type === 'ASYNC_REPORT' &&
+      input.deliveryHour !== undefined &&
+      !input.deliveryHour
+    ) {
+      throw new BadRequestException('异步报告必须保留承诺交付时长 deliveryHour');
+    }
+    if (
+      existing.type === 'REALTIME_IM' &&
+      input.durationMin !== undefined &&
+      !input.durationMin
+    ) {
+      throw new BadRequestException('实时 IM 必须保留单次时长 durationMin');
+    }
+
     return this.prisma.serviceSKU.update({
       where: { id: skuId },
       data: { ...input },

@@ -120,14 +120,14 @@ describe('SkuService', () => {
 
   describe('update', () => {
     it('updates a sku owned by the master', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1' });
+      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1', type: 'ASYNC_REPORT', deliveryHour: 48 });
       prisma.serviceSKU.update.mockResolvedValue({ id: 's1', price: 12900 });
       const result = await service.update('m1', 's1', { price: 12900 });
       expect(result.price).toBe(12900);
     });
 
     it('throws NotFound when sku not owned by master', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'other' });
+      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'other', type: 'ASYNC_REPORT' });
       await expect(
         service.update('m1', 's1', { price: 100 }),
       ).rejects.toThrow(NotFoundException);
@@ -141,9 +141,42 @@ describe('SkuService', () => {
     });
 
     it('rejects non-positive price on update', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1' });
+      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1', type: 'ASYNC_REPORT' });
       await expect(
         service.update('m1', 's1', { price: -5 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects setting durationMin on an ASYNC_REPORT sku', async () => {
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'm1',
+        type: 'ASYNC_REPORT',
+      });
+      await expect(
+        service.update('m1', 's1', { durationMin: 30 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects setting deliveryHour on a REALTIME_IM sku', async () => {
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's2',
+        masterId: 'm1',
+        type: 'REALTIME_IM',
+      });
+      await expect(
+        service.update('m1', 's2', { deliveryHour: 48 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects clearing required deliveryHour on an ASYNC_REPORT sku', async () => {
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'm1',
+        type: 'ASYNC_REPORT',
+      });
+      await expect(
+        service.update('m1', 's1', { deliveryHour: 0 }),
       ).rejects.toThrow(BadRequestException);
     });
   });
