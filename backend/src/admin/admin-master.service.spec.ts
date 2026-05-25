@@ -46,6 +46,23 @@ describe('AdminMasterService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
+    it('allows re-polish from PROFILE_DRAFTED', async () => {
+      prisma.master.findUnique.mockResolvedValue({
+        id: 'm1',
+        onboardingStep: 'PROFILE_DRAFTED',
+      });
+      prisma.master.update.mockResolvedValue({
+        id: 'm1',
+        onboardingStep: 'PROFILE_DRAFTED',
+      });
+      const result = await service.polishProfile('m1', { intro: '二稿' });
+      expect(result.onboardingStep).toBe('PROFILE_DRAFTED');
+      expect(prisma.master.update).toHaveBeenCalledWith({
+        where: { id: 'm1' },
+        data: { intro: '二稿', onboardingStep: 'PROFILE_DRAFTED' },
+      });
+    });
+
     it('throws NotFound when master missing', async () => {
       prisma.master.findUnique.mockResolvedValue(null);
       await expect(service.polishProfile('x', {})).rejects.toThrow(
@@ -69,11 +86,11 @@ describe('AdminMasterService', () => {
       });
     });
 
-    it('is idempotent when badge already present', async () => {
+    it('is idempotent when badge already present (no DB write)', async () => {
       prisma.master.findUnique.mockResolvedValue({ id: 'm1', badges: ['严选'] });
-      prisma.master.update.mockResolvedValue({ id: 'm1', badges: ['严选'] });
       const result = await service.grantBadge('m1', '严选');
       expect(result.badges).toEqual(['严选']);
+      expect(prisma.master.update).not.toHaveBeenCalled();
     });
 
     it('throws NotFound when master missing', async () => {

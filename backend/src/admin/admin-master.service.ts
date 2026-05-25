@@ -49,10 +49,12 @@ export class AdminMasterService {
     const current = Array.isArray(master.badges)
       ? (master.badges as string[])
       : [];
-    const badges = current.includes(badge) ? current : [...current, badge];
+    if (current.includes(badge)) {
+      return master;
+    }
     return this.prisma.master.update({
       where: { id: masterId },
-      data: { badges },
+      data: { badges: [...current, badge] },
     });
   }
 
