@@ -120,17 +120,26 @@ describe('SkuService', () => {
 
   describe('update', () => {
     it('updates a sku owned by the master', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1', type: 'ASYNC_REPORT', deliveryHour: 48 });
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'm1',
+        type: 'ASYNC_REPORT',
+        deliveryHour: 48,
+      });
       prisma.serviceSKU.update.mockResolvedValue({ id: 's1', price: 12900 });
       const result = await service.update('m1', 's1', { price: 12900 });
       expect(result.price).toBe(12900);
     });
 
     it('throws NotFound when sku not owned by master', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'other', type: 'ASYNC_REPORT' });
-      await expect(
-        service.update('m1', 's1', { price: 100 }),
-      ).rejects.toThrow(NotFoundException);
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'other',
+        type: 'ASYNC_REPORT',
+      });
+      await expect(service.update('m1', 's1', { price: 100 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws NotFound when sku missing', async () => {
@@ -141,10 +150,14 @@ describe('SkuService', () => {
     });
 
     it('rejects non-positive price on update', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1', type: 'ASYNC_REPORT' });
-      await expect(
-        service.update('m1', 's1', { price: -5 }),
-      ).rejects.toThrow(BadRequestException);
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'm1',
+        type: 'ASYNC_REPORT',
+      });
+      await expect(service.update('m1', 's1', { price: -5 })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('rejects setting durationMin on an ASYNC_REPORT sku', async () => {
@@ -183,8 +196,14 @@ describe('SkuService', () => {
 
   describe('disable', () => {
     it('sets status DISABLED for owned sku', async () => {
-      prisma.serviceSKU.findUnique.mockResolvedValue({ id: 's1', masterId: 'm1' });
-      prisma.serviceSKU.update.mockResolvedValue({ id: 's1', status: 'DISABLED' });
+      prisma.serviceSKU.findUnique.mockResolvedValue({
+        id: 's1',
+        masterId: 'm1',
+      });
+      prisma.serviceSKU.update.mockResolvedValue({
+        id: 's1',
+        status: 'DISABLED',
+      });
       const result = await service.disable('m1', 's1');
       expect(result.status).toBe('DISABLED');
       expect(prisma.serviceSKU.update).toHaveBeenCalledWith({

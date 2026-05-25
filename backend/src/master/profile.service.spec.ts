@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { ProfileService, PUBLIC_MASTER_SELECT } from './profile.service';
+import { ProfileService } from './profile.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('ProfileService', () => {
@@ -22,13 +22,18 @@ describe('ProfileService', () => {
     });
     it('throws NotFound when missing', async () => {
       prisma.master.findUnique.mockResolvedValue(null);
-      await expect(service.getMyProfile('x')).rejects.toThrow(NotFoundException);
+      await expect(service.getMyProfile('x')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('updateProfile', () => {
     it('updates allowed presentation fields only', async () => {
-      prisma.master.findUnique.mockResolvedValue({ id: 'm1', status: 'PENDING' });
+      prisma.master.findUnique.mockResolvedValue({
+        id: 'm1',
+        status: 'PENDING',
+      });
       prisma.master.update.mockResolvedValue({ id: 'm1', displayName: '玄一' });
       const result = await service.updateProfile('m1', {
         displayName: '玄一',
@@ -51,11 +56,17 @@ describe('ProfileService', () => {
 
   describe('getPublicProfile', () => {
     it('returns ACTIVE master', async () => {
-      prisma.master.findUnique.mockResolvedValue({ id: 'm1', status: 'ACTIVE' });
+      prisma.master.findUnique.mockResolvedValue({
+        id: 'm1',
+        status: 'ACTIVE',
+      });
       expect(await service.getPublicProfile('m1')).toMatchObject({ id: 'm1' });
     });
     it('throws NotFound for non-ACTIVE master', async () => {
-      prisma.master.findUnique.mockResolvedValue({ id: 'm1', status: 'PENDING' });
+      prisma.master.findUnique.mockResolvedValue({
+        id: 'm1',
+        status: 'PENDING',
+      });
       await expect(service.getPublicProfile('m1')).rejects.toThrow(
         NotFoundException,
       );

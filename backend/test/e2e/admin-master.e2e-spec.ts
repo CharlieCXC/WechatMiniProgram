@@ -69,7 +69,9 @@ describe('Admin invite codes (e2e)', () => {
       .get('/admin/invites')
       .set('Authorization', `Bearer ${adminToken()}`)
       .expect(200);
-    expect(listed.body.data.some((c: { id: string }) => c.id === id)).toBe(true);
+    expect(listed.body.data.some((c: { id: string }) => c.id === id)).toBe(
+      true,
+    );
 
     const revoked = await request(app.getHttpServer())
       .delete(`/admin/invites/${id}`)
@@ -158,8 +160,13 @@ describe('Admin master review (e2e)', () => {
       data: {
         phone: '13900139402',
         onboardingStep: 'PROFILE_DRAFTED',
-        displayName: '', avatar: '', intro: '',
-        experience: '', philosophy: '', methods: [], topics: [],
+        displayName: '',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: [],
+        topics: [],
       },
     });
     await request(app.getHttpServer())

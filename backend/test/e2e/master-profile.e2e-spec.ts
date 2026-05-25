@@ -61,7 +61,11 @@ describe('Master profile (e2e)', () => {
     const updated = await request(app.getHttpServer())
       .patch('/masters/me')
       .set('Authorization', `Bearer ${token()}`)
-      .send({ displayName: '玄一道长', intro: '专注八字解读十年', methods: ['八字'] })
+      .send({
+        displayName: '玄一道长',
+        intro: '专注八字解读十年',
+        methods: ['八字'],
+      })
       .expect(200);
     expect(updated.body.data.displayName).toBe('玄一道长');
     expect(updated.body.data.methods).toEqual(['八字']);

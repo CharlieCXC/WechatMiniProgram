@@ -18,7 +18,9 @@ export class InviteService {
     const code = Array.from({ length: 8 }, () =>
       ALPHABET.charAt(randomInt(0, ALPHABET.length)),
     ).join('');
-    return this.prisma.inviteCode.create({ data: { code, note: note ?? null } });
+    return this.prisma.inviteCode.create({
+      data: { code, note: note ?? null },
+    });
   }
 
   async list(): Promise<InviteCode[]> {

@@ -50,7 +50,10 @@ describe('InviteService', () => {
   });
 
   it('revoke marks an UNUSED code REVOKED', async () => {
-    prisma.inviteCode.findUnique.mockResolvedValue({ id: 'i1', status: 'UNUSED' });
+    prisma.inviteCode.findUnique.mockResolvedValue({
+      id: 'i1',
+      status: 'UNUSED',
+    });
     prisma.inviteCode.update.mockResolvedValue({ id: 'i1', status: 'REVOKED' });
     const result = await service.revoke('i1');
     expect(result.status).toBe('REVOKED');
@@ -66,12 +69,18 @@ describe('InviteService', () => {
   });
 
   it('revoke throws Conflict when code already USED', async () => {
-    prisma.inviteCode.findUnique.mockResolvedValue({ id: 'i1', status: 'USED' });
+    prisma.inviteCode.findUnique.mockResolvedValue({
+      id: 'i1',
+      status: 'USED',
+    });
     await expect(service.revoke('i1')).rejects.toThrow(ConflictException);
   });
 
   it('revoke throws Conflict when code already REVOKED', async () => {
-    prisma.inviteCode.findUnique.mockResolvedValue({ id: 'i1', status: 'REVOKED' });
+    prisma.inviteCode.findUnique.mockResolvedValue({
+      id: 'i1',
+      status: 'REVOKED',
+    });
     await expect(service.revoke('i1')).rejects.toThrow(ConflictException);
   });
 });

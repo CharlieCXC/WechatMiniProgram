@@ -32,8 +32,13 @@ describe('Master SKU (e2e)', () => {
     const master = await prisma.master.create({
       data: {
         phone: '13900139501',
-        displayName: '', avatar: '', intro: '',
-        experience: '', philosophy: '', methods: [], topics: [],
+        displayName: '',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: [],
+        topics: [],
       },
     });
     masterId = master.id;
@@ -131,8 +136,13 @@ describe('Master SKU (e2e)', () => {
     const other = await prisma.master.create({
       data: {
         phone: '13900139502',
-        displayName: '', avatar: '', intro: '',
-        experience: '', philosophy: '', methods: [], topics: [],
+        displayName: '',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: [],
+        topics: [],
       },
     });
     const otherToken = jwt.sign({ sub: other.id, role: 'MASTER' });

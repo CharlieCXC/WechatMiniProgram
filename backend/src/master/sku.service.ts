@@ -32,7 +32,9 @@ export class SkuService {
       throw new BadRequestException('价格必须为正整数（单位：分）');
     }
     if (input.type === 'ASYNC_REPORT' && !input.deliveryHour) {
-      throw new BadRequestException('异步报告必须设置承诺交付时长 deliveryHour');
+      throw new BadRequestException(
+        '异步报告必须设置承诺交付时长 deliveryHour',
+      );
     }
     if (input.type === 'REALTIME_IM' && !input.durationMin) {
       throw new BadRequestException('实时 IM 必须设置单次时长 durationMin');
@@ -61,7 +63,9 @@ export class SkuService {
     masterId: string,
     skuId: string,
   ): Promise<ServiceSKU> {
-    const sku = await this.prisma.serviceSKU.findUnique({ where: { id: skuId } });
+    const sku = await this.prisma.serviceSKU.findUnique({
+      where: { id: skuId },
+    });
     if (!sku || sku.masterId !== masterId) {
       throw new NotFoundException('SKU 不存在');
     }
@@ -93,7 +97,9 @@ export class SkuService {
       input.deliveryHour !== undefined &&
       !input.deliveryHour
     ) {
-      throw new BadRequestException('异步报告必须保留承诺交付时长 deliveryHour');
+      throw new BadRequestException(
+        '异步报告必须保留承诺交付时长 deliveryHour',
+      );
     }
     if (
       existing.type === 'REALTIME_IM' &&

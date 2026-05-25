@@ -32,8 +32,13 @@ describe('Master schedule (e2e)', () => {
     const master = await prisma.master.create({
       data: {
         phone: '13900139601',
-        displayName: '', avatar: '', intro: '',
-        experience: '', philosophy: '', methods: [], topics: [],
+        displayName: '',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: [],
+        topics: [],
       },
     });
     masterId = master.id;
@@ -90,8 +95,6 @@ describe('Master schedule (e2e)', () => {
   });
 
   it('requires MASTER token (401)', async () => {
-    await request(app.getHttpServer())
-      .get('/masters/me/schedules')
-      .expect(401);
+    await request(app.getHttpServer()).get('/masters/me/schedules').expect(401);
   });
 });
