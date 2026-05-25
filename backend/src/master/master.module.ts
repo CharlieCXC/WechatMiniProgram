@@ -6,10 +6,23 @@ import { ProfileService } from './profile.service';
 import { MasterController } from './master.controller';
 import { SkuService } from './sku.service';
 import { SkuController } from './sku.controller';
+import { ScheduleService } from './schedule.service';
+import { ScheduleController } from './schedule.controller';
 
 @Module({
-  controllers: [OnboardingController, MasterController, SkuController],
-  providers: [MasterService, OnboardingService, ProfileService, SkuService],
+  controllers: [
+    OnboardingController,
+    MasterController,
+    SkuController,
+    ScheduleController,
+  ],
+  providers: [
+    MasterService,
+    OnboardingService,
+    ProfileService,
+    SkuService,
+    ScheduleService,
+  ],
   exports: [MasterService],
 })
 export class MasterModule {}
