@@ -112,4 +112,59 @@ describe('Master SKU (e2e)', () => {
   it('requires MASTER token (401)', async () => {
     await request(app.getHttpServer()).get('/masters/me/skus').expect(401);
   });
+
+  it('rejects REALTIME_IM without durationMin (400)', async () => {
+    await request(app.getHttpServer())
+      .post('/masters/me/skus')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({
+        name: 'x',
+        type: 'REALTIME_IM',
+        price: 9900,
+        description: 'y',
+      })
+      .expect(400);
+  });
+
+  it('prevents IDOR: another master cannot patch or delete this masters sku', async () => {
+    // create another master + their own valid SKU on this master
+    const other = await prisma.master.create({
+      data: {
+        phone: '13900139502',
+        displayName: '', avatar: '', intro: '',
+        experience: '', philosophy: '', methods: [], topics: [],
+      },
+    });
+    const otherToken = jwt.sign({ sub: other.id, role: 'MASTER' });
+
+    // primary master creates a SKU
+    const created = await request(app.getHttpServer())
+      .post('/masters/me/skus')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({
+        name: 'IDOR target',
+        type: 'ASYNC_REPORT',
+        price: 5000,
+        deliveryHour: 24,
+        description: 'd',
+      })
+      .expect(201);
+    const skuId = created.body.data.id as string;
+
+    // 'other' master tries to PATCH and DELETE — both must 404
+    await request(app.getHttpServer())
+      .patch(`/masters/me/skus/${skuId}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ price: 1 })
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .delete(`/masters/me/skus/${skuId}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404);
+
+    // cleanup
+    await prisma.serviceSKU.deleteMany({ where: { id: skuId } });
+    await prisma.master.deleteMany({ where: { id: other.id } });
+  });
 });
