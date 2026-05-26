@@ -140,8 +140,9 @@ model Order {
   skuId          String
   skuSnapshot    Json
   state          OrderState @default(PENDING_ACCEPT)
-  scheduledAt    DateTime?
-  conversationId String
+  scheduledAt      DateTime?
+  deliveryDeadline DateTime?
+  conversationId   String
 
   originalPrice Int
   finalPrice    Int
@@ -188,6 +189,25 @@ model PriceChange {
 }
 
 enum PriceChangeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model ExtensionRequest {
+  id              String                 @id @default(cuid())
+  orderId         String
+  additionalHours Int
+  reason          String                 @db.Text
+  status          ExtensionRequestStatus @default(PENDING)
+  decidedAt       DateTime?
+  createdAt       DateTime               @default(now())
+
+  @@index([orderId])
+  @@map("extension_requests")
+}
+
+enum ExtensionRequestStatus {
   PENDING
   ACCEPTED
   REJECTED
