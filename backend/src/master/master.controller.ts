@@ -3,7 +3,6 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 import { ProfileService } from './profile.service';
@@ -36,8 +35,7 @@ export class MasterController {
   }
 
   @Get(':id')
-  @Public()
-  @ApiOperation({ summary: '公开获取已上架师傅 profile' })
+  @ApiOperation({ summary: '公开获取已上架师傅 profile（无鉴权）' })
   getPublic(@Param('id') id: string) {
     return this.profile.getPublicProfile(id);
   }
