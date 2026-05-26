@@ -41,6 +41,8 @@ model Master {
   realname         String?
   realnameVerified Boolean @default(false)
   idNumberHash     String?
+  onboardingStep    MasterOnboardingStep @default(REGISTERED)
+  agreementSignedAt DateTime?
 
   displayName String  @db.VarChar(100)
   avatar      String  @db.VarChar(500)
@@ -59,6 +61,7 @@ model Master {
   skus        ServiceSKU[]
   schedules   Schedule[]
   settlements Settlement[]
+  inviteCode  InviteCode?
 
   @@map("masters")
 }
@@ -68,6 +71,34 @@ enum MasterStatus {
   ACTIVE
   SUSPENDED
   REMOVED
+}
+
+enum MasterOnboardingStep {
+  REGISTERED
+  INVITED
+  INFO_SUBMITTED
+  PROFILE_DRAFTED
+  SIGNED
+  LIVE
+}
+
+model InviteCode {
+  id             String           @id @default(cuid())
+  code           String           @unique
+  note           String?          @db.VarChar(200)
+  status         InviteCodeStatus @default(UNUSED)
+  usedByMasterId String?          @unique
+  usedByMaster   Master?          @relation(fields: [usedByMasterId], references: [id])
+  createdAt      DateTime         @default(now())
+  usedAt         DateTime?
+
+  @@map("invite_codes")
+}
+
+enum InviteCodeStatus {
+  UNUSED
+  USED
+  REVOKED
 }
 
 // ============= SERVICE SKU =============
