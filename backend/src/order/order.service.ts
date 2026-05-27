@@ -107,4 +107,37 @@ export class OrderService {
     });
     return updated;
   }
+
+  private async getOrderOwnedByUserOrThrow(userId: string, orderId: string): Promise<Order> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.userId !== userId) {
+      throw new NotFoundException('订单不存在');
+    }
+    return order;
+  }
+
+  async cancelOrder(userId: string, orderId: string): Promise<Order> {
+    const order = await this.getOrderOwnedByUserOrThrow(userId, orderId);
+    const preRefundStates = ['PENDING_ACCEPT', 'ACCEPTED', 'PENDING_PAYMENT'];
+    const postPaymentStates = ['PAID', 'IN_PROGRESS'];
+    let targetState: 'CANCELLED' | 'REFUNDED';
+    if (preRefundStates.includes(order.state)) {
+      targetState = 'CANCELLED';
+    } else if (postPaymentStates.includes(order.state)) {
+      targetState = 'REFUNDED';
+    } else {
+      throw new ConflictException('订单状态不允许取消');
+    }
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: targetState },
+    });
+    await this.conversation.addSystemCard({
+      conversationId: order.conversationId,
+      cardType: 'ORDER_CANCELLED',
+      payload: { orderId, by: 'USER' },
+      orderId,
+    });
+    return updated;
+  }
 }
