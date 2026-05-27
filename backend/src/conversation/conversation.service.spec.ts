@@ -37,6 +37,28 @@ describe('ConversationService', () => {
         data: { userId: 'u1', masterId: 'm1' },
       });
     });
+
+    it('recovers from P2002 race (concurrent create) by re-fetching', async () => {
+      prisma.conversation.findUnique
+        .mockResolvedValueOnce(null) // initial check: nothing yet
+        .mockResolvedValueOnce({ id: 'c_race_winner', userId: 'u1', masterId: 'm1' }); // re-fetch after P2002
+      const p2002 = Object.assign(
+        new Error('Unique constraint failed'),
+        { code: 'P2002', clientVersion: 'test' },
+      );
+      Object.setPrototypeOf(p2002, (await import('@prisma/client')).Prisma.PrismaClientKnownRequestError.prototype);
+      prisma.conversation.create.mockRejectedValue(p2002);
+      const result = await service.findOrCreate('u1', 'm1');
+      expect(result.id).toBe('c_race_winner');
+      expect(prisma.conversation.findUnique).toHaveBeenCalledTimes(2);
+    });
+
+    it('propagates non-P2002 errors from create', async () => {
+      prisma.conversation.findUnique.mockResolvedValueOnce(null);
+      const generic = new Error('boom');
+      prisma.conversation.create.mockRejectedValue(generic);
+      await expect(service.findOrCreate('u1', 'm1')).rejects.toThrow('boom');
+    });
   });
 
   describe('addSystemCard', () => {

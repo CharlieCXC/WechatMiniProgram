@@ -147,6 +147,10 @@ describe('OrderService — create/accept/reject', () => {
       prisma.order.update.mockResolvedValue({ id: 'o1', state: 'CANCELLED' });
       const result = await service.rejectOrder('m1', 'o1', '日程不便');
       expect(result.state).toBe('CANCELLED');
+      expect(prisma.order.update).toHaveBeenCalledWith({
+        where: { id: 'o1' },
+        data: { state: 'CANCELLED' },
+      });
       expect(conv.addSystemCard).toHaveBeenCalledWith(
         expect.objectContaining({
           cardType: 'ORDER_REJECTED',
@@ -154,6 +158,13 @@ describe('OrderService — create/accept/reject', () => {
           payload: expect.objectContaining({ orderId: 'o1', reason: '日程不便' }),
         }),
       );
+    });
+
+    it('rejects IDOR (master does not own order)', async () => {
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1', masterId: 'm_other', state: 'PENDING_ACCEPT',
+      });
+      await expect(service.rejectOrder('m1', 'o1', 'x')).rejects.toThrow(NotFoundException);
     });
 
     it('rejects when state is not PENDING_ACCEPT', async () => {

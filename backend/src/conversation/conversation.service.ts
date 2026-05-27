@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Conversation, Message } from '@prisma/client';
+import { Conversation, Message, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type SystemCardType =
@@ -32,7 +32,21 @@ export class ConversationService {
       where: { userId_masterId: { userId, masterId } },
     });
     if (existing) return existing;
-    return this.prisma.conversation.create({ data: { userId, masterId } });
+    try {
+      return await this.prisma.conversation.create({ data: { userId, masterId } });
+    } catch (e) {
+      // Concurrent createOrder for the same user×master raced ahead of us
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const winner = await this.prisma.conversation.findUnique({
+          where: { userId_masterId: { userId, masterId } },
+        });
+        if (winner) return winner;
+      }
+      throw e;
+    }
   }
 
   async addSystemCard(input: AddSystemCardInput): Promise<Message> {
