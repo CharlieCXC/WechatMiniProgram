@@ -6,6 +6,8 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { MasterModule } from './master/master.module';
 import { AdminModule } from './admin/admin.module';
+import { PaymentModule } from './payment/payment.module';
+import { ConversationModule } from './conversation/conversation.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { AdminModule } from './admin/admin.module';
     AuthModule,
     MasterModule,
     AdminModule,
+    PaymentModule,
+    ConversationModule,
   ],
 })
 export class AppModule {}
