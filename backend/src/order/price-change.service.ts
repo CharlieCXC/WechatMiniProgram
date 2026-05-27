@@ -7,6 +7,7 @@ import {
 import { PriceChange } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { computePlatformFee } from './platform-fee';
 
 const PROPOSE_ALLOWED_STATES = new Set([
   'ACCEPTED',
@@ -14,10 +15,6 @@ const PROPOSE_ALLOWED_STATES = new Set([
   'PAID',
   'IN_PROGRESS',
 ]);
-
-function computePlatformFee(amount: number): number {
-  return Math.floor(amount * 0.1);
-}
 
 @Injectable()
 export class PriceChangeService {

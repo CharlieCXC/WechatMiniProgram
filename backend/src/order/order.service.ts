@@ -8,12 +8,7 @@ import { Order, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationService } from '../conversation/conversation.service';
 import { WechatPayService } from '../payment/wechat-pay.service';
-
-const PLATFORM_FEE_RATE = 0.1;
-
-function computePlatformFee(finalPrice: number): number {
-  return Math.floor(finalPrice * PLATFORM_FEE_RATE);
-}
+import { computePlatformFee } from './platform-fee';
 
 @Injectable()
 export class OrderService {
