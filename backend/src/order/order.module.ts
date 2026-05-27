@@ -3,6 +3,7 @@ import { OrderService } from './order.service';
 import { OrderController } from './order.controller';
 import { MasterOrderController } from './master-order.controller';
 import { PriceChangeController } from './price-change.controller';
+import { ExtensionController } from './extension.controller';
 import { PriceChangeService } from './price-change.service';
 import { ExtensionService } from './extension.service';
 import { ConversationModule } from '../conversation/conversation.module';
@@ -10,7 +11,12 @@ import { PaymentModule } from '../payment/payment.module';
 
 @Module({
   imports: [ConversationModule, forwardRef(() => PaymentModule)],
-  controllers: [OrderController, MasterOrderController, PriceChangeController],
+  controllers: [
+    OrderController,
+    MasterOrderController,
+    PriceChangeController,
+    ExtensionController,
+  ],
   providers: [OrderService, PriceChangeService, ExtensionService],
   exports: [OrderService],
 })
