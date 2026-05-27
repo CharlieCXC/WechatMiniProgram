@@ -7,6 +7,7 @@ import {
 import { Order, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { WechatPayService } from '../payment/wechat-pay.service';
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -19,6 +20,7 @@ export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversation: ConversationService,
+    private readonly wechatPay: WechatPayService,
   ) {}
 
   async createOrder(userId: string, skuId: string): Promise<Order> {
@@ -136,6 +138,51 @@ export class OrderService {
       conversationId: order.conversationId,
       cardType: 'ORDER_CANCELLED',
       payload: { orderId, by: 'USER' },
+      orderId,
+    });
+    return updated;
+  }
+
+  async requestPayment(
+    userId: string,
+    orderId: string,
+    openid: string,
+  ): Promise<{ order: Order; paymentIntent: { prepayId: string; outTradeNo: string; signTimestamp: string } }> {
+    const order = await this.getOrderOwnedByUserOrThrow(userId, orderId);
+    if (order.state !== 'ACCEPTED') {
+      throw new ConflictException('订单状态不允许发起支付');
+    }
+    const sku = order.skuSnapshot as { name: string };
+    const paymentIntent = await this.wechatPay.createPaymentIntent({
+      orderId,
+      amount: order.finalPrice,
+      openid,
+      description: sku.name,
+    });
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: 'PENDING_PAYMENT' },
+    });
+    return { order: updated, paymentIntent };
+  }
+
+  async confirmPayment(orderId: string): Promise<Order> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('订单不存在');
+    if (order.state !== 'PENDING_PAYMENT') {
+      throw new ConflictException('订单状态不允许确认支付');
+    }
+    const snapshot = order.skuSnapshot as { deliveryHour?: number };
+    const hours = snapshot.deliveryHour ?? 0;
+    const deadline = new Date(Date.now() + hours * 3600 * 1000);
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: 'IN_PROGRESS', deliveryDeadline: deadline },
+    });
+    await this.conversation.addSystemCard({
+      conversationId: order.conversationId,
+      cardType: 'ORDER_PAID',
+      payload: { orderId, paidAmount: order.finalPrice },
       orderId,
     });
     return updated;

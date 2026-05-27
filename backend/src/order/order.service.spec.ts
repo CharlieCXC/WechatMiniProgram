@@ -7,6 +7,7 @@ import {
 import { OrderService } from './order.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationService } from '../conversation/conversation.service';
+import { WechatPayService } from '../payment/wechat-pay.service';
 
 describe('OrderService — create/accept/reject', () => {
   let service: OrderService;
@@ -35,6 +36,7 @@ describe('OrderService — create/accept/reject', () => {
         OrderService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConversationService, useValue: conv },
+        { provide: WechatPayService, useValue: { createPaymentIntent: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(OrderService);
@@ -191,6 +193,7 @@ describe('OrderService — cancel', () => {
         OrderService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConversationService, useValue: conv },
+        { provide: WechatPayService, useValue: { createPaymentIntent: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(OrderService);
@@ -240,3 +243,4 @@ describe('OrderService — cancel', () => {
     await expect(service.cancelOrder('u1', 'o1')).rejects.toThrow(ConflictException);
   });
 });
+
