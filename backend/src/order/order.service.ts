@@ -187,4 +187,85 @@ export class OrderService {
     });
     return updated;
   }
+
+  async deliverOrder(
+    masterId: string,
+    orderId: string,
+    input: { artifactUrl: string; description: string },
+  ): Promise<Order> {
+    const order = await this.getOrderOwnedByMasterOrThrow(masterId, orderId);
+    if (order.state !== 'IN_PROGRESS') {
+      throw new ConflictException('订单状态不允许交付');
+    }
+    const asset = await this.prisma.asset.create({
+      data: {
+        ownerId: masterId,
+        ownerType: 'MASTER',
+        category: 'delivery_report',
+        url: input.artifactUrl,
+        metadata: { description: input.description } as Prisma.InputJsonValue,
+        relatedOrderId: orderId,
+      },
+    });
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: 'DELIVERED', deliveredAt: new Date() },
+    });
+    await this.conversation.addSystemCard({
+      conversationId: order.conversationId,
+      cardType: 'ORDER_DELIVERED',
+      payload: { orderId, assetId: asset.id, description: input.description },
+      orderId,
+    });
+    return updated;
+  }
+
+  async confirmDelivery(userId: string, orderId: string): Promise<Order> {
+    const order = await this.getOrderOwnedByUserOrThrow(userId, orderId);
+    if (order.state !== 'DELIVERED') {
+      throw new ConflictException('订单状态不允许确认收货');
+    }
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: 'COMPLETED', completedAt: new Date() },
+    });
+    await this.conversation.addSystemCard({
+      conversationId: order.conversationId,
+      cardType: 'ORDER_COMPLETED',
+      payload: { orderId },
+      orderId,
+    });
+    return updated;
+  }
+
+  async disputeOrder(
+    userId: string,
+    orderId: string,
+    input: { reason: string; userStatement: string; evidence: string[] },
+  ): Promise<Order> {
+    const order = await this.getOrderOwnedByUserOrThrow(userId, orderId);
+    if (order.state !== 'DELIVERED') {
+      throw new ConflictException('订单状态不允许发起异议');
+    }
+    const dispute = await this.prisma.disputeCase.create({
+      data: {
+        orderId,
+        userId,
+        reason: input.reason,
+        userStatement: input.userStatement,
+        evidence: input.evidence as Prisma.InputJsonValue,
+      },
+    });
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { state: 'IN_DISPUTE' },
+    });
+    await this.conversation.addSystemCard({
+      conversationId: order.conversationId,
+      cardType: 'ORDER_DISPUTED',
+      payload: { orderId, disputeId: dispute.id },
+      orderId,
+    });
+    return updated;
+  }
 }
