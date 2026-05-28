@@ -31,33 +31,53 @@ describe('OrderService — payment', () => {
   describe('requestPayment', () => {
     it('transitions ACCEPTED → PENDING_PAYMENT and returns payment intent', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'ACCEPTED', conversationId: 'c1', finalPrice: 9900,
+        id: 'o1',
+        userId: 'u1',
+        state: 'ACCEPTED',
+        conversationId: 'c1',
+        finalPrice: 9900,
         skuSnapshot: { name: 'x' },
       });
-      prisma.order.update.mockResolvedValue({ id: 'o1', state: 'PENDING_PAYMENT' });
+      prisma.order.update.mockResolvedValue({
+        id: 'o1',
+        state: 'PENDING_PAYMENT',
+      });
       pay.createPaymentIntent.mockResolvedValue({
-        prepayId: 'STUB_PREPAY_o1', outTradeNo: 'STUB_o1', signTimestamp: '1',
+        prepayId: 'STUB_PREPAY_o1',
+        outTradeNo: 'STUB_o1',
+        signTimestamp: '1',
       });
       const result = await service.requestPayment('u1', 'o1', 'wx_oid');
       expect(result.order.state).toBe('PENDING_PAYMENT');
       expect(result.paymentIntent.prepayId).toBe('STUB_PREPAY_o1');
       expect(pay.createPaymentIntent).toHaveBeenCalledWith({
-        orderId: 'o1', amount: 9900, openid: 'wx_oid', description: 'x',
+        orderId: 'o1',
+        amount: 9900,
+        openid: 'wx_oid',
+        description: 'x',
       });
     });
 
     it('rejects when order is not in ACCEPTED state', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'PENDING_ACCEPT',
+        id: 'o1',
+        userId: 'u1',
+        state: 'PENDING_ACCEPT',
       });
-      await expect(service.requestPayment('u1', 'o1', 'wx_oid')).rejects.toThrow(ConflictException);
+      await expect(
+        service.requestPayment('u1', 'o1', 'wx_oid'),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('rejects IDOR', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u_other', state: 'ACCEPTED',
+        id: 'o1',
+        userId: 'u_other',
+        state: 'ACCEPTED',
       });
-      await expect(service.requestPayment('u1', 'o1', 'wx_oid')).rejects.toThrow(NotFoundException);
+      await expect(
+        service.requestPayment('u1', 'o1', 'wx_oid'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -65,7 +85,10 @@ describe('OrderService — payment', () => {
     it('transitions PENDING_PAYMENT → IN_PROGRESS, sets deliveryDeadline, sends ORDER_PAID', async () => {
       const acceptedAt = new Date('2026-05-26T00:00:00Z');
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', state: 'PENDING_PAYMENT', conversationId: 'c1', finalPrice: 9900,
+        id: 'o1',
+        state: 'PENDING_PAYMENT',
+        conversationId: 'c1',
+        finalPrice: 9900,
         acceptedAt,
         skuSnapshot: { deliveryHour: 48, type: 'ASYNC_REPORT' },
       });
@@ -78,7 +101,9 @@ describe('OrderService — payment', () => {
       expect(arg.data.deliveryDeadline).toBeInstanceOf(Date);
       // 48h from now (not from acceptedAt — deadline 起算 = 付款成功时刻)
       const expectedMs = Date.now() + 48 * 3600 * 1000;
-      expect(Math.abs(arg.data.deliveryDeadline.getTime() - expectedMs)).toBeLessThan(5000);
+      expect(
+        Math.abs(arg.data.deliveryDeadline.getTime() - expectedMs),
+      ).toBeLessThan(5000);
       expect(conv.addSystemCard).toHaveBeenCalledWith(
         expect.objectContaining({
           cardType: 'ORDER_PAID',
@@ -89,14 +114,19 @@ describe('OrderService — payment', () => {
 
     it('rejects when not in PENDING_PAYMENT', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', state: 'ACCEPTED',
+        id: 'o1',
+        state: 'ACCEPTED',
       });
-      await expect(service.confirmPayment('o1')).rejects.toThrow(ConflictException);
+      await expect(service.confirmPayment('o1')).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('throws NotFound when order missing', async () => {
       prisma.order.findUnique.mockResolvedValue(null);
-      await expect(service.confirmPayment('x')).rejects.toThrow(NotFoundException);
+      await expect(service.confirmPayment('x')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

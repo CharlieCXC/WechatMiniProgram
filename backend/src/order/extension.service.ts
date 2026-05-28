@@ -23,7 +23,9 @@ export class ExtensionService {
     if (input.additionalHours < 1 || input.additionalHours > 168) {
       throw new BadRequestException('延期小时数必须在 1-168 之间');
     }
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || order.masterId !== masterId) {
       throw new NotFoundException('订单不存在');
     }
@@ -37,12 +39,21 @@ export class ExtensionService {
       throw new ConflictException('已有未处理的延期申请');
     }
     const created = await this.prisma.extensionRequest.create({
-      data: { orderId, additionalHours: input.additionalHours, reason: input.reason },
+      data: {
+        orderId,
+        additionalHours: input.additionalHours,
+        reason: input.reason,
+      },
     });
     await this.conversation.addSystemCard({
       conversationId: order.conversationId,
       cardType: 'EXTENSION_REQUEST',
-      payload: { orderId, extensionId: created.id, additionalHours: input.additionalHours, reason: input.reason },
+      payload: {
+        orderId,
+        extensionId: created.id,
+        additionalHours: input.additionalHours,
+        reason: input.reason,
+      },
       orderId,
     });
     return created;
@@ -53,19 +64,26 @@ export class ExtensionService {
     extensionId: string,
     decision: 'ACCEPTED' | 'REJECTED',
   ): Promise<ExtensionRequest> {
-    const ext = await this.prisma.extensionRequest.findUnique({ where: { id: extensionId } });
+    const ext = await this.prisma.extensionRequest.findUnique({
+      where: { id: extensionId },
+    });
     if (!ext) throw new NotFoundException('延期申请不存在');
     if (ext.status !== 'PENDING') {
       throw new ConflictException('延期申请已被处理');
     }
-    const order = await this.prisma.order.findUnique({ where: { id: ext.orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: ext.orderId },
+    });
     if (!order || order.userId !== userId) {
       throw new NotFoundException('订单不存在');
     }
 
     if (decision === 'ACCEPTED') {
       const newDeadline = order.deliveryDeadline
-        ? new Date(order.deliveryDeadline.getTime() + ext.additionalHours * 3600 * 1000)
+        ? new Date(
+            order.deliveryDeadline.getTime() +
+              ext.additionalHours * 3600 * 1000,
+          )
         : new Date(Date.now() + ext.additionalHours * 3600 * 1000);
       const result = await this.prisma.$transaction(async (tx) => {
         const updated = await tx.extensionRequest.update({

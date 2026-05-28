@@ -19,7 +19,9 @@ export interface NotifyBody {
 
 @Injectable()
 export class WechatPayService {
-  async createPaymentIntent(input: CreatePaymentIntentInput): Promise<PaymentIntent> {
+  async createPaymentIntent(
+    input: CreatePaymentIntentInput,
+  ): Promise<PaymentIntent> {
     return {
       prepayId: `STUB_PREPAY_${input.orderId}`,
       outTradeNo: `STUB_${input.orderId}`,

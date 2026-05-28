@@ -31,7 +31,9 @@ export class PriceChangeService {
     if (input.newPrice < 1) {
       throw new BadRequestException('新价格必须为正整数（单位：分）');
     }
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || order.masterId !== masterId) {
       throw new NotFoundException('订单不存在');
     }
@@ -75,12 +77,16 @@ export class PriceChangeService {
     priceChangeId: string,
     decision: 'ACCEPTED' | 'REJECTED',
   ): Promise<PriceChange> {
-    const pc = await this.prisma.priceChange.findUnique({ where: { id: priceChangeId } });
+    const pc = await this.prisma.priceChange.findUnique({
+      where: { id: priceChangeId },
+    });
     if (!pc) throw new NotFoundException('改价请求不存在');
     if (pc.status !== 'PENDING') {
       throw new ConflictException('改价请求已被处理');
     }
-    const order = await this.prisma.order.findUnique({ where: { id: pc.orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: pc.orderId },
+    });
     if (!order || order.userId !== userId) {
       throw new NotFoundException('订单不存在');
     }
@@ -93,7 +99,10 @@ export class PriceChangeService {
         });
         await tx.order.update({
           where: { id: order.id },
-          data: { finalPrice: pc.toPrice, platformFee: computePlatformFee(pc.toPrice) },
+          data: {
+            finalPrice: pc.toPrice,
+            platformFee: computePlatformFee(pc.toPrice),
+          },
         });
         return updated;
       });

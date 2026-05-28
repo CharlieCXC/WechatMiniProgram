@@ -15,36 +15,64 @@ describe('Master order endpoints (e2e)', () => {
   let skuId: string;
 
   beforeAll(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
     prisma = moduleRef.get(PrismaService);
     jwt = moduleRef.get(JwtService);
 
-    const user = await prisma.user.create({ data: { openid: 'wx_e2e_morder_u' } });
+    const user = await prisma.user.create({
+      data: { openid: 'wx_e2e_morder_u' },
+    });
     userId = user.id;
     const master = await prisma.master.create({
       data: {
-        phone: '13900139702', status: 'ACTIVE', onboardingStep: 'LIVE',
-        displayName: 'x', avatar: '', intro: '',
-        experience: '', philosophy: '', methods: ['八字'], topics: ['事业咨询'],
+        phone: '13900139702',
+        status: 'ACTIVE',
+        onboardingStep: 'LIVE',
+        displayName: 'x',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: ['八字'],
+        topics: ['事业咨询'],
       },
     });
     masterId = master.id;
     const sku = await prisma.serviceSKU.create({
-      data: { masterId, name: 'x', type: 'ASYNC_REPORT', price: 9900, deliveryHour: 24, description: 'd' },
+      data: {
+        masterId,
+        name: 'x',
+        type: 'ASYNC_REPORT',
+        price: 9900,
+        deliveryHour: 24,
+        description: 'd',
+      },
     });
     skuId = sku.id;
   });
 
   afterAll(async () => {
     // FK-safe cleanup: find all conversation ids for this pair first
-    const conversations = await prisma.conversation.findMany({ where: { userId, masterId } });
-    const convIds = conversations.map(c => c.id);
+    const conversations = await prisma.conversation.findMany({
+      where: { userId, masterId },
+    });
+    const convIds = conversations.map((c) => c.id);
     if (convIds.length) {
-      await prisma.message.deleteMany({ where: { conversationId: { in: convIds } } });
+      await prisma.message.deleteMany({
+        where: { conversationId: { in: convIds } },
+      });
     }
     await prisma.asset.deleteMany({ where: { ownerId: masterId } });
     await prisma.order.deleteMany({ where: { masterId } });
@@ -84,7 +112,10 @@ describe('Master order endpoints (e2e)', () => {
     const delivered = await request(app.getHttpServer())
       .post(`/masters/me/orders/${orderId}/deliver`)
       .set('Authorization', `Bearer ${masterToken()}`)
-      .send({ artifactUrl: 'https://cos.example.com/r.pdf', description: '完整报告' })
+      .send({
+        artifactUrl: 'https://cos.example.com/r.pdf',
+        description: '完整报告',
+      })
       .expect(201);
     expect(delivered.body.data.state).toBe('DELIVERED');
 
@@ -119,9 +150,16 @@ describe('Master order endpoints (e2e)', () => {
     const orderId = created.body.data.id as string;
     const otherMaster = await prisma.master.create({
       data: {
-        phone: '13900139703', status: 'ACTIVE', onboardingStep: 'LIVE',
-        displayName: 'y', avatar: '', intro: '', experience: '', philosophy: '',
-        methods: ['塔罗'], topics: ['感情咨询'],
+        phone: '13900139703',
+        status: 'ACTIVE',
+        onboardingStep: 'LIVE',
+        displayName: 'y',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: ['塔罗'],
+        topics: ['感情咨询'],
       },
     });
     const otherToken = jwt.sign({ sub: otherMaster.id, role: 'MASTER' });

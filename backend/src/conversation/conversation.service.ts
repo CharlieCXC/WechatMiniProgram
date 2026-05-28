@@ -33,7 +33,9 @@ export class ConversationService {
     });
     if (existing) return existing;
     try {
-      return await this.prisma.conversation.create({ data: { userId, masterId } });
+      return await this.prisma.conversation.create({
+        data: { userId, masterId },
+      });
     } catch (e) {
       // Concurrent createOrder for the same user×master raced ahead of us
       if (
@@ -57,7 +59,8 @@ export class ConversationService {
         senderType: 'SYSTEM',
         type: 'SYSTEM_CARD',
         content: input.cardType,
-        systemCardData: input.payload as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        systemCardData:
+          input.payload as unknown as import('@prisma/client').Prisma.InputJsonValue,
         relatedOrderId: input.orderId,
         auditStatus: 'PASS',
       },

@@ -15,7 +15,10 @@ describe('ConversationService', () => {
       message: { create: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
-      providers: [ConversationService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ConversationService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(ConversationService);
   });
@@ -30,7 +33,11 @@ describe('ConversationService', () => {
 
     it('creates a conversation when missing', async () => {
       prisma.conversation.findUnique.mockResolvedValue(null);
-      prisma.conversation.create.mockResolvedValue({ id: 'c2', userId: 'u1', masterId: 'm1' });
+      prisma.conversation.create.mockResolvedValue({
+        id: 'c2',
+        userId: 'u1',
+        masterId: 'm1',
+      });
       const result = await service.findOrCreate('u1', 'm1');
       expect(result.id).toBe('c2');
       expect(prisma.conversation.create).toHaveBeenCalledWith({
@@ -41,12 +48,20 @@ describe('ConversationService', () => {
     it('recovers from P2002 race (concurrent create) by re-fetching', async () => {
       prisma.conversation.findUnique
         .mockResolvedValueOnce(null) // initial check: nothing yet
-        .mockResolvedValueOnce({ id: 'c_race_winner', userId: 'u1', masterId: 'm1' }); // re-fetch after P2002
-      const p2002 = Object.assign(
-        new Error('Unique constraint failed'),
-        { code: 'P2002', clientVersion: 'test' },
+        .mockResolvedValueOnce({
+          id: 'c_race_winner',
+          userId: 'u1',
+          masterId: 'm1',
+        }); // re-fetch after P2002
+      const p2002 = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        clientVersion: 'test',
+      });
+      Object.setPrototypeOf(
+        p2002,
+        (await import('@prisma/client')).Prisma.PrismaClientKnownRequestError
+          .prototype,
       );
-      Object.setPrototypeOf(p2002, (await import('@prisma/client')).Prisma.PrismaClientKnownRequestError.prototype);
       prisma.conversation.create.mockRejectedValue(p2002);
       const result = await service.findOrCreate('u1', 'm1');
       expect(result.id).toBe('c_race_winner');

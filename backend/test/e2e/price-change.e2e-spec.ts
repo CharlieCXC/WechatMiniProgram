@@ -16,9 +16,17 @@ describe('Price change (e2e)', () => {
   let orderId: string;
 
   beforeAll(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
     prisma = moduleRef.get(PrismaService);
@@ -28,14 +36,28 @@ describe('Price change (e2e)', () => {
     userId = user.id;
     const master = await prisma.master.create({
       data: {
-        phone: '13900139801', status: 'ACTIVE', onboardingStep: 'LIVE',
-        displayName: 'x', avatar: '', intro: '', experience: '', philosophy: '',
-        methods: ['八字'], topics: ['事业咨询'],
+        phone: '13900139801',
+        status: 'ACTIVE',
+        onboardingStep: 'LIVE',
+        displayName: 'x',
+        avatar: '',
+        intro: '',
+        experience: '',
+        philosophy: '',
+        methods: ['八字'],
+        topics: ['事业咨询'],
       },
     });
     masterId = master.id;
     const sku = await prisma.serviceSKU.create({
-      data: { masterId, name: 'x', type: 'ASYNC_REPORT', price: 9900, deliveryHour: 24, description: 'd' },
+      data: {
+        masterId,
+        name: 'x',
+        type: 'ASYNC_REPORT',
+        price: 9900,
+        deliveryHour: 24,
+        description: 'd',
+      },
     });
     skuId = sku.id;
 
@@ -43,22 +65,35 @@ describe('Price change (e2e)', () => {
     const userTok = jwt.sign({ sub: userId, role: 'USER' });
     const masterTok = jwt.sign({ sub: masterId, role: 'MASTER' });
     const created = await request(app.getHttpServer())
-      .post('/orders').set('Authorization', `Bearer ${userTok}`).send({ skuId }).expect(201);
+      .post('/orders')
+      .set('Authorization', `Bearer ${userTok}`)
+      .send({ skuId })
+      .expect(201);
     orderId = created.body.data.id;
     await request(app.getHttpServer())
-      .post(`/masters/me/orders/${orderId}/accept`).set('Authorization', `Bearer ${masterTok}`).expect(201);
+      .post(`/masters/me/orders/${orderId}/accept`)
+      .set('Authorization', `Bearer ${masterTok}`)
+      .expect(201);
     await request(app.getHttpServer())
-      .post(`/orders/${orderId}/pay`).set('Authorization', `Bearer ${userTok}`).expect(201);
+      .post(`/orders/${orderId}/pay`)
+      .set('Authorization', `Bearer ${userTok}`)
+      .expect(201);
     await request(app.getHttpServer())
-      .post('/payments/wechat/notify').send({ outTradeNo: `STUB_${orderId}` }).expect(200);
+      .post('/payments/wechat/notify')
+      .send({ outTradeNo: `STUB_${orderId}` })
+      .expect(200);
   });
 
   afterAll(async () => {
     await prisma.priceChange.deleteMany({ where: { orderId } });
-    const conversations = await prisma.conversation.findMany({ where: { userId, masterId } });
-    const convIds = conversations.map(c => c.id);
+    const conversations = await prisma.conversation.findMany({
+      where: { userId, masterId },
+    });
+    const convIds = conversations.map((c) => c.id);
     if (convIds.length) {
-      await prisma.message.deleteMany({ where: { conversationId: { in: convIds } } });
+      await prisma.message.deleteMany({
+        where: { conversationId: { in: convIds } },
+      });
     }
     await prisma.asset.deleteMany({ where: { ownerId: masterId } });
     await prisma.order.deleteMany({ where: { id: orderId } });

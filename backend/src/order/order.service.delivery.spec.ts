@@ -1,8 +1,5 @@
 import { Test } from '@nestjs/testing';
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationService } from '../conversation/conversation.service';
@@ -29,7 +26,10 @@ describe('OrderService — delivery / confirm / dispute', () => {
         OrderService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConversationService, useValue: conv },
-        { provide: WechatPayService, useValue: { createPaymentIntent: jest.fn() } },
+        {
+          provide: WechatPayService,
+          useValue: { createPaymentIntent: jest.fn() },
+        },
       ],
     }).compile();
     service = moduleRef.get(OrderService);
@@ -38,7 +38,10 @@ describe('OrderService — delivery / confirm / dispute', () => {
   describe('deliverOrder', () => {
     it('creates Asset and transitions IN_PROGRESS → DELIVERED', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', masterId: 'm1', state: 'IN_PROGRESS', conversationId: 'c1',
+        id: 'o1',
+        masterId: 'm1',
+        state: 'IN_PROGRESS',
+        conversationId: 'c1',
       });
       prisma.asset.create.mockResolvedValue({ id: 'a1' });
       prisma.order.update.mockResolvedValue({ id: 'o1', state: 'DELIVERED' });
@@ -71,19 +74,29 @@ describe('OrderService — delivery / confirm / dispute', () => {
 
     it('rejects when state is not IN_PROGRESS', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', masterId: 'm1', state: 'ACCEPTED',
+        id: 'o1',
+        masterId: 'm1',
+        state: 'ACCEPTED',
       });
       await expect(
-        service.deliverOrder('m1', 'o1', { artifactUrl: 'u', description: 'd' }),
+        service.deliverOrder('m1', 'o1', {
+          artifactUrl: 'u',
+          description: 'd',
+        }),
       ).rejects.toThrow(ConflictException);
     });
 
     it('rejects IDOR (master does not own order)', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', masterId: 'm_other', state: 'IN_PROGRESS',
+        id: 'o1',
+        masterId: 'm_other',
+        state: 'IN_PROGRESS',
       });
       await expect(
-        service.deliverOrder('m1', 'o1', { artifactUrl: 'u', description: 'd' }),
+        service.deliverOrder('m1', 'o1', {
+          artifactUrl: 'u',
+          description: 'd',
+        }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -91,7 +104,10 @@ describe('OrderService — delivery / confirm / dispute', () => {
   describe('confirmDelivery', () => {
     it('transitions DELIVERED → COMPLETED with system card', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'DELIVERED', conversationId: 'c1',
+        id: 'o1',
+        userId: 'u1',
+        state: 'DELIVERED',
+        conversationId: 'c1',
       });
       prisma.order.update.mockResolvedValue({ id: 'o1', state: 'COMPLETED' });
       const result = await service.confirmDelivery('u1', 'o1');
@@ -107,16 +123,23 @@ describe('OrderService — delivery / confirm / dispute', () => {
 
     it('rejects when not DELIVERED', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'IN_PROGRESS',
+        id: 'o1',
+        userId: 'u1',
+        state: 'IN_PROGRESS',
       });
-      await expect(service.confirmDelivery('u1', 'o1')).rejects.toThrow(ConflictException);
+      await expect(service.confirmDelivery('u1', 'o1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
   describe('disputeOrder', () => {
     it('transitions DELIVERED → IN_DISPUTE and creates DisputeCase', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'DELIVERED', conversationId: 'c1',
+        id: 'o1',
+        userId: 'u1',
+        state: 'DELIVERED',
+        conversationId: 'c1',
       });
       prisma.disputeCase.create.mockResolvedValue({ id: 'd1' });
       prisma.order.update.mockResolvedValue({ id: 'o1', state: 'IN_DISPUTE' });
@@ -145,11 +168,15 @@ describe('OrderService — delivery / confirm / dispute', () => {
 
     it('rejects when not DELIVERED', async () => {
       prisma.order.findUnique.mockResolvedValue({
-        id: 'o1', userId: 'u1', state: 'COMPLETED',
+        id: 'o1',
+        userId: 'u1',
+        state: 'COMPLETED',
       });
       await expect(
         service.disputeOrder('u1', 'o1', {
-          reason: 'x', userStatement: 'y', evidence: [],
+          reason: 'x',
+          userStatement: 'y',
+          evidence: [],
         }),
       ).rejects.toThrow(ConflictException);
     });

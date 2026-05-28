@@ -19,12 +19,16 @@ export class OrderService {
   ) {}
 
   async createOrder(userId: string, skuId: string): Promise<Order> {
-    const sku = await this.prisma.serviceSKU.findUnique({ where: { id: skuId } });
+    const sku = await this.prisma.serviceSKU.findUnique({
+      where: { id: skuId },
+    });
     if (!sku) throw new NotFoundException('SKU 不存在');
     if (sku.status !== 'ACTIVE') {
       throw new BadRequestException('SKU 已下架');
     }
-    const master = await this.prisma.master.findUnique({ where: { id: sku.masterId } });
+    const master = await this.prisma.master.findUnique({
+      where: { id: sku.masterId },
+    });
     if (!master || master.status !== 'ACTIVE') {
       throw new BadRequestException('师傅未上架');
     }
@@ -58,7 +62,9 @@ export class OrderService {
     masterId: string,
     orderId: string,
   ): Promise<Order> {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || order.masterId !== masterId) {
       throw new NotFoundException('订单不存在');
     }
@@ -105,8 +111,13 @@ export class OrderService {
     return updated;
   }
 
-  private async getOrderOwnedByUserOrThrow(userId: string, orderId: string): Promise<Order> {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+  private async getOrderOwnedByUserOrThrow(
+    userId: string,
+    orderId: string,
+  ): Promise<Order> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order || order.userId !== userId) {
       throw new NotFoundException('订单不存在');
     }
@@ -142,7 +153,14 @@ export class OrderService {
     userId: string,
     orderId: string,
     openid: string,
-  ): Promise<{ order: Order; paymentIntent: { prepayId: string; outTradeNo: string; signTimestamp: string } }> {
+  ): Promise<{
+    order: Order;
+    paymentIntent: {
+      prepayId: string;
+      outTradeNo: string;
+      signTimestamp: string;
+    };
+  }> {
     const order = await this.getOrderOwnedByUserOrThrow(userId, orderId);
     if (order.state !== 'ACCEPTED') {
       throw new ConflictException('订单状态不允许发起支付');
@@ -162,7 +180,9 @@ export class OrderService {
   }
 
   async confirmPayment(orderId: string): Promise<Order> {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException('订单不存在');
     if (order.state !== 'PENDING_PAYMENT') {
       throw new ConflictException('订单状态不允许确认支付');

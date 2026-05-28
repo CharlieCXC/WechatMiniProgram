@@ -32,7 +32,9 @@ describe('Order lifecycle (e2e)', () => {
     prisma = moduleRef.get(PrismaService);
     jwt = moduleRef.get(JwtService);
 
-    const user = await prisma.user.create({ data: { openid: 'wx_e2e_order_u' } });
+    const user = await prisma.user.create({
+      data: { openid: 'wx_e2e_order_u' },
+    });
     userId = user.id;
     const master = await prisma.master.create({
       data: {
@@ -101,7 +103,9 @@ describe('Order lifecycle (e2e)', () => {
       .post(`/orders/${orderId}/pay`)
       .set('Authorization', `Bearer ${userToken()}`)
       .expect(201);
-    expect(payResp.body.data.paymentIntent.prepayId).toBe(`STUB_PREPAY_${orderId}`);
+    expect(payResp.body.data.paymentIntent.prepayId).toBe(
+      `STUB_PREPAY_${orderId}`,
+    );
     expect(payResp.body.data.order.state).toBe('PENDING_PAYMENT');
 
     // notify (no auth)
